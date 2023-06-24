@@ -1,15 +1,17 @@
 import { revalidatePath } from "next/cache";
 import { getTemperature } from "./actions";
 import Temperature from "./Weather";
+import { readFile, writeFile } from './utilities'
 
-export default async function Home({ searchParams }: any) {
-  const cityName = searchParams.city || '';
+export default async function Home() {
+  const { cityName } = JSON.parse(readFile('./app/database.json'));
   const temperature = await getTemperature(cityName);
 
   const handleSubmit = async (formData: FormData) => {
     'use server';
     const cityName = formData.get('cityName');
-    // how do i reload the server component with the proper city?
+    writeFile('./app/database.json', JSON.stringify({ cityName }));
+    revalidatePath('/');
   };
 
   return (
