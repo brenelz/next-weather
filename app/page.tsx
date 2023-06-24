@@ -1,95 +1,76 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+'use client';
+
+import { FormEvent, useState } from "react";
+
+const apiKey = process.env.NEXT_PUBLIC_WEATHER_API_KEY;
+
+type Temperature = {
+  kelvin: number;
+  celcius: number;
+}
 
 export default function Home() {
+  const [cityName, setCityName] = useState<string>();
+  const [tempUnit, setTempUnit] = useState('Celcius');
+  const [temperature, setTemperature] = useState<Temperature>();
+
+  const getTemperature = async (city: string) => {
+    const result = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`
+    );
+
+    const weather = await result.json();
+
+    if (weather.cod !== 200) {
+      throw new Error(weather.message);
+    }
+
+    setTemperature({
+      kelvin: weather.main.temp,
+      celcius: Math.round(weather.main.temp - 273.15)
+    });
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    const form = e.currentTarget as HTMLFormElement;
+    const formElements = form.elements as typeof form.elements & {
+      cityName: HTMLInputElement;
+    };
+    const cityName = formElements.cityName.value;
+
+    if (!cityName) return;
+    setCityName(cityName);
+    getTemperature(cityName);
+
+    form.reset();
+    formElements.cityName.focus();
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
+    <>
+      <h2>Weather</h2>
+      <form onSubmit={handleSubmit}>
+        <input name="cityName" placeholder="City name" />
+        <button type="submit">
+          Check Weather
+        </button>
+      </form>
+      {temperature && (<><p>
+        The current weather in <strong>{cityName}</strong> is:{' '}
+        {tempUnit === 'Celcius' ? temperature.celcius : temperature.kelvin}
+      </p>
         <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
+          <button onClick={() => {
+            setTempUnit('Celcius');
+          }}>Celcius</button>
+
+          <button onClick={() => {
+            setTempUnit('Kelvin');
+          }}>Kelvin</button>
         </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+      </>)}
+    </>
+  );
 }
